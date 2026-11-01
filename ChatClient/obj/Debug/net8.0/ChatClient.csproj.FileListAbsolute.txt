@@ -1,0 +1,15 @@
+C:\Users\sendi\Desktop\chat\ChatClient\bin\Debug\net8.0\ChatClient.exe
+C:\Users\sendi\Desktop\chat\ChatClient\bin\Debug\net8.0\ChatClient.deps.json
+C:\Users\sendi\Desktop\chat\ChatClient\bin\Debug\net8.0\ChatClient.runtimeconfig.json
+C:\Users\sendi\Desktop\chat\ChatClient\bin\Debug\net8.0\ChatClient.dll
+C:\Users\sendi\Desktop\chat\ChatClient\bin\Debug\net8.0\ChatClient.pdb
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ChatClient.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ChatClient.AssemblyInfoInputs.cache
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ChatClient.AssemblyInfo.cs
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ChatClient.csproj.CoreCompileInputs.cache
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ChatClient.sourcelink.json
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ChatClient.dll
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\refint\ChatClient.dll
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ChatClient.pdb
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ChatClient.genruntimeconfig.cache
+C:\Users\sendi\Desktop\chat\ChatClient\obj\Debug\net8.0\ref\ChatClient.dll
