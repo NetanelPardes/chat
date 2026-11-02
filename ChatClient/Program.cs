@@ -1,22 +1,26 @@
-﻿
+﻿//Runs the chat software and manages two operations simultaneously: receiving messages from the server and sending messages typed by the user.
 using ChatClient.Models;
 using ChatClient.Networking;
 using ChatClient.Services;
 using ChatClient.UI;
 
+//Creating the Objects
 TcpChatClient tcpClient = new TcpChatClient();
 ChatService chatService = new ChatService(tcpClient);
 ConsoleUI ui = new ConsoleUI();
 
 ui.ShowWelcome();
 
+//Username Request
 Console.Write("Enter username : ");
 string? username = ui.ReadInput();
 
-if (string.IsNullOrWhiteSpace(username))
+//Username check
+while(string.IsNullOrWhiteSpace(username))
 {
     ui.ShowError("Username cannot be empty");
-    return;
+    Console.Write("Enter username : ");
+    username = ui.ReadInput();
 }
 
 username = username.Trim();
