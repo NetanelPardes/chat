@@ -6,14 +6,9 @@ namespace ChatServer.Services;
 
 public class ClientService
 {
-    private readonly ConcurrentDictionary<string, ConnectedClient> _clients =
-        new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, ConnectedClient> _clients = new(StringComparer.OrdinalIgnoreCase);
 
-    public ConnectedClient CreateClient(
-        string username,
-        TcpClient tcpClient,
-        StreamReader reader,
-        StreamWriter writer)
+    public ConnectedClient CreateClient(string username,TcpClient tcpClient,StreamReader reader,StreamWriter writer)
     {
         return new ConnectedClient
         {
