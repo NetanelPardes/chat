@@ -5,6 +5,7 @@ using ChatServer.Services;
 
 namespace ChatServer.Networking;
 
+//The class responsible for handling each client connects to our central server.
 public class ClientHandler
 {
     //Allows managing connected users
