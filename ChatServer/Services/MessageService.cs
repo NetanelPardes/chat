@@ -37,10 +37,10 @@ public class MessageService
         try
         {
             //Sending the message
-            await _clientService.SendAsync(receiver,$"{sender.Username}: {content}");
+            await _clientService.SendAsync(receiver, $"{sender.Username}: {content}");
 
             //Sending a confirmation to the sender
-            await _clientService.SendAsync(sender, "Message sent!");
+            Console.WriteLine($"Message \"{content}\" sent from {sender.Username} to {receiverName}");
         }
         catch (IOException)
         {

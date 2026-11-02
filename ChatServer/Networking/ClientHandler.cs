@@ -40,7 +40,7 @@ public class ClientHandler
             using (StreamWriter writer = new(stream,new UTF8Encoding(false),bufferSize: 1024,leaveOpen: true) { AutoFlush = true })
             {
                 //Username Request
-                await writer.WriteLineAsync("Enter username (start with @):");
+                await writer.WriteLineAsync("Enter username:");
 
                 string? username = await reader.ReadLineAsync();
 
@@ -49,7 +49,7 @@ public class ClientHandler
 
                 username = username.Trim();
 
-                if (username.Length < 2 ||username.Length > 30 ||username.Contains(':') ||!username.StartsWith('@') ||username.Contains(' '))
+                if (username.Length < 2 ||username.Length > 30 ||username.Contains(':')  ||username.Contains(' '))
                 {
                     await writer.WriteLineAsync("Invalid username");
                     return;
