@@ -14,13 +14,11 @@ public class TcpServer
     private readonly ClientHandler _clientHandler;
 
     //Constructor
-    public TcpServer(string ip,int port,ClientService clientService,MessageService messageService)
+    public TcpServer(string ip,int port,ClientService clientService,MessageService messageService,UserService userService)
     {
-        //create TcpListener with ip and port 
         _server = new TcpListener(IPAddress.Parse(ip), port);
 
-        //create ClientHandler and get evry concted list
-        _clientHandler = new ClientHandler(clientService,messageService);
+        _clientHandler = new ClientHandler(clientService,messageService,userService);
     }
 
     //method that activates the server

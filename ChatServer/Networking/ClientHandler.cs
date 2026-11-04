@@ -14,11 +14,15 @@ public class ClientHandler
     //Allows managing messages between users
     private readonly MessageService _messageService;
 
+    private readonly UserService _userService;
+
     //Constructor
-    public ClientHandler(ClientService clientService,MessageService messageService)
+    public ClientHandler(ClientService clientService,MessageService messageService,UserService userService)
     {
         _clientService = clientService;
         _messageService = messageService;
+        // The service that updates the user record in MySQL
+        _userService = userService;
     }
 
     public async Task HandleClientAsync(TcpClient tcpClient)
@@ -65,6 +69,12 @@ public class ClientHandler
                     client = null;
                     return;
                 }
+
+                // Saving the user to the database and updating the status
+                var user = await _userService.MarkOnlineAsync(username);
+
+                // Storing the user ID within the active connection
+                client.UserId = user.Id;
 
                 //Successful login
                 Console.WriteLine($"{username} connected");
@@ -136,15 +146,37 @@ public class ClientHandler
         }
         finally
         {
-            //Removing the user from the list of connected users
-            if (client != null)
+            try
             {
-                _clientService.RemoveClient(client);
-                Console.WriteLine($"{client.Username} disconnected");
-            }
+                if (client != null)
+                {
+                    try
+                    {
+                        // If the user is saved successfully, mark them as disconnected
+                        if (client.UserId > 0)
+                        {
+                            await _userService.MarkOfflineAsync(client.UserId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(
+                            $"Failed to update user status: {ex.Message}");
+                    }
+                    finally
+                    {
+                        // Remove the connection even if the database update fails
+                        _clientService.RemoveClient(client);
 
-            //Closing the TCP connection
-            tcpClient.Dispose();
+                        Console.WriteLine(
+                            $"{client.Username} disconnected");
+                    }
+                }
+            }
+            finally
+            {
+                tcpClient.Dispose();
+            }
         }
     }
 }

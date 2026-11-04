@@ -8,5 +8,20 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  mysql:
+    image: mysql:8.4
+    container_name: tcpchat-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: local_root_password
+      MYSQL_DATABASE: TcpChatDb
+      MYSQL_USER: chat_user
+      MYSQL_PASSWORD: local_chat_password
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
 volumes:
   mongo_data:
+  mysql_data:
