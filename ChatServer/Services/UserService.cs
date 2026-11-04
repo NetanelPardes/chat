@@ -1,70 +1,68 @@
 using ChatServer.Data;
 using ChatServer.Models;
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace ChatServer.Services;
 
-//Responsible for maintaining users and updating their connection status in MySQL.
+//Responsible for maintaining users and updating their connection status in MongoDB.
 public class UserService
 {
-    private readonly DbContextOptions<MySqlDbContext> _options;
+    private readonly MongoDbContext _mongoDb;
 
-    public UserService(DbContextOptions<MySqlDbContext> options)
+    public UserService(MongoDbContext mongoDb)
     {
-        _options = options;
+        _mongoDb = mongoDb;
     }
 
-    // Creating tables and resetting statuses upon server startup
+    // Creating a unique username index and resetting statuses upon server startup
     public async Task InitializeAsync()
     {
-        await using var db = new MySqlDbContext(_options);
+        var index = new CreateIndexModel<User>(
+            Builders<User>.IndexKeys.Ascending(u => u.Username),
+            new CreateIndexOptions { Unique = true });
 
-        await db.Database.EnsureCreatedAsync();
+        await _mongoDb.Users.Indexes.CreateOneAsync(index);
 
-        await db.Users.ExecuteUpdateAsync(update =>
-            update.SetProperty(u => u.IsOnline, false));
+        var update = Builders<User>.Update.Set(u => u.IsOnline, false);
+
+        await _mongoDb.Users.UpdateManyAsync(Builders<User>.Filter.Empty,update);
     }
 
     // Searching for or creating the user, and marking them as logged in
     public async Task<User> MarkOnlineAsync(string username)
     {
-        await using var db = new MySqlDbContext(_options);
-
         //Searching for a user by name
-        User? user = await db.Users.SingleOrDefaultAsync(u => u.Username == username);
+        var filter = Builders<User>.Filter
+            .Eq(u => u.Username, username);
 
-        if (user == null)
+        //Creating a user if they do not yet exist in the database
+        var update = Builders<User>.Update
+            .Set(u => u.IsOnline, true)
+            .SetOnInsert(u => u.Id, ObjectId.GenerateNewId())
+            .SetOnInsert(u => u.Username, username)
+            .SetOnInsert(u => u.CreatedAtUtc, DateTime.UtcNow);
+
+        // Insert if missing, and return the user after the update
+        var options = new FindOneAndUpdateOptions<User>
         {
-            //Creating a user if they do not yet exist in the database
-            user = new User
-            {
-                Username = username,
-                IsOnline = true
-            };
-            // Marking the record for addition to the database
-            db.Users.Add(user);
-        }
-        else
-        {
-            user.IsOnline = true;
-        }
+            IsUpsert = true,
+            ReturnDocument = ReturnDocument.After
+        };
 
-        await db.SaveChangesAsync();
-
-        return user;
+        return await _mongoDb.Users.FindOneAndUpdateAsync(filter,update,options);
     }
 
-   // Marking the user as disconnected and saving the disconnection time
-    public async Task MarkOfflineAsync(int userId)
+    // Marking the user as disconnected and saving the disconnection time
+    public async Task MarkOfflineAsync(ObjectId userId)
     {
-        await using var db = new MySqlDbContext(_options);
+        var filter = Builders<User>.Filter
+            .Eq(u => u.Id, userId);
 
-        await db.Users
-            .Where(u => u.Id == userId)
-            .ExecuteUpdateAsync(update => update
-                .SetProperty(u => u.IsOnline, false)
-                .SetProperty(
-                    u => u.LastSeenAtUtc,
-                    (DateTime?)DateTime.UtcNow));
+        var update = Builders<User>.Update
+            .Set(u => u.IsOnline, false)
+            .Set(u => u.LastSeenAtUtc, (DateTime?)DateTime.UtcNow);
+
+        await _mongoDb.Users.UpdateOneAsync(filter, update);
     }
 }

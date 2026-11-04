@@ -8,10 +8,15 @@ public class TcpChatClient
 {
     //Represents the TCP connection
     private TcpClient? _tcpClient;
+
     //Allows us to read the message as a string
     private StreamReader? _reader;
+
     //Allows writing text to the server
     private StreamWriter? _writer;
+
+    // Prevents simultaneous writes by user input and receipt confirmations
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
 
     //Connecting to server
     public async Task ConnectAsync(string ip, int port)
@@ -25,10 +30,19 @@ public class TcpChatClient
         NetworkStream stream = _tcpClient.GetStream();
 
         //This is the creation of a StreamReader object.
-        _reader = new StreamReader(stream,Encoding.UTF8,detectEncodingFromByteOrderMarks: true,bufferSize: 1024,leaveOpen: true);
+        _reader = new StreamReader(
+            stream,
+            Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true,
+            bufferSize: 1024,
+            leaveOpen: true);
 
         //This object is responsible for sending text to the server.
-        _writer = new StreamWriter(stream,new UTF8Encoding(false),bufferSize: 1024,leaveOpen: true)
+        _writer = new StreamWriter(
+            stream,
+            new UTF8Encoding(false),
+            bufferSize: 1024,
+            leaveOpen: true)
         {
             AutoFlush = true
         };
@@ -37,10 +51,24 @@ public class TcpChatClient
     //Sending a message
     public async Task SendAsync(string message)
     {
-        if (_writer == null)
-            throw new InvalidOperationException("Not connected to server");
+        // Only one write operation can run at a time
+        await _sendLock.WaitAsync();
 
-        await _writer.WriteLineAsync(message);
+        try
+        {
+            // Keep a local reference in case shutdown clears the field
+            StreamWriter writer = _writer
+                ?? throw new ObjectDisposedException(
+                    nameof(TcpChatClient),
+                    "Not connected to server");
+
+            await writer.WriteLineAsync(message);
+        }
+        finally
+        {
+            // Release the lock even if writing fails
+            _sendLock.Release();
+        }
     }
 
     //Receiving a message
@@ -55,9 +83,11 @@ public class TcpChatClient
     //Closing the connection
     public void Disconnect()
     {
+        // Close the socket first to interrupt pending network operations
+        _tcpClient?.Dispose();
+
         _reader?.Dispose();
         _writer?.Dispose();
-        _tcpClient?.Dispose();
 
         _reader = null;
         _writer = null;

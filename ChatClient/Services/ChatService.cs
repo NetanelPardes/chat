@@ -36,7 +36,8 @@ public class ChatService
 
         //Checking connection success
         if (response != $"Welcome {username}!")
-            throw new InvalidOperationException(response ?? "Connection closed by server");
+            throw new InvalidOperationException(
+                response ?? "Connection closed by server");
     }
 
     //Sending a private message
@@ -57,7 +58,7 @@ public class ChatService
         await _tcpClient.SendAsync(text);
     }
 
-    //Requesting the list of users        
+    //Requesting the list of users
     public async Task RequestOnlineUsersAsync()
     {
         await _tcpClient.SendAsync("/users");
@@ -67,6 +68,40 @@ public class ChatService
     public async Task<string?> ReceiveMessageAsync()
     {
         return await _tcpClient.ReceiveAsync();
+    }
+
+    // Parsing MSG:Id:Sender:Content into a ChatMessage
+    public ChatMessage? ParseReceivedMessage(
+        string incoming,
+        string username)
+    {
+        if (!incoming.StartsWith("MSG:", StringComparison.Ordinal))
+            return null;
+
+        // Split only three times, preserving colons inside the content
+        string[] parts = incoming.Split(':', 4);
+
+        if (parts.Length != 4
+            || string.IsNullOrWhiteSpace(parts[1])
+            || string.IsNullOrWhiteSpace(parts[2]))
+        {
+            return null;
+        }
+
+        //Constructing a ChatMessage object
+        return new ChatMessage
+        {
+            Id = parts[1],
+            Sender = parts[2],
+            Receiver = username,
+            Content = parts[3].Trim()
+        };
+    }
+
+    // Automatically confirming receipt of a specific message
+    public async Task ConfirmDeliveryAsync(string messageId)
+    {
+        await _tcpClient.SendAsync($"/ack {messageId}");
     }
 
     //Disconnect from the chat

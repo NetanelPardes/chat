@@ -1,10 +1,11 @@
 using System.Net.Sockets;
+using MongoDB.Bson;
 
 namespace ChatServer.Models;
 
 public class ConnectedClient
 {
-    public int UserId { get; set; }
+    public ObjectId UserId { get; set; }
     public string Username { get; set; } = "";
 
     public TcpClient TcpClient { get; set; } = null!;

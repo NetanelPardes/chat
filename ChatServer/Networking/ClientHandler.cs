@@ -2,6 +2,7 @@ using System.Net.Sockets;
 using System.Text;
 using ChatServer.Models;
 using ChatServer.Services;
+using MongoDB.Bson;
 
 namespace ChatServer.Networking;
 
@@ -21,7 +22,8 @@ public class ClientHandler
     {
         _clientService = clientService;
         _messageService = messageService;
-        // The service that updates the user record in MySQL
+
+        // The service that updates the user record in MongoDB
         _userService = userService;
     }
 
@@ -39,9 +41,9 @@ public class ClientHandler
 
             //Allows us to read text from the connection, instead of working directly with arrays of bytes.
             using (StreamReader reader = new(stream,Encoding.UTF8,detectEncodingFromByteOrderMarks: true,bufferSize: 1024,leaveOpen: true))
-            
+
             //Receives text, encodes it into bytes, and sends them.
-            using (StreamWriter writer = new(stream,new UTF8Encoding(false),bufferSize: 1024,leaveOpen: true) { AutoFlush = true })
+            using (StreamWriter writer = new(stream,new UTF8Encoding(false),bufferSize: 1024,leaveOpen: true){ AutoFlush = true })
             {
                 //Username Request
                 await writer.WriteLineAsync("Enter username:");
@@ -53,14 +55,14 @@ public class ClientHandler
 
                 username = username.Trim();
 
-                if (username.Length < 2 ||username.Length > 30 ||username.Contains(':')  ||username.Contains(' '))
+                if (username.Length < 2 || username.Length > 30 || username.Contains(':') || username.Contains(' '))
                 {
                     await writer.WriteLineAsync("Invalid username");
                     return;
                 }
 
                 //Creating a ConnectedClient
-                client = _clientService.CreateClient(username,tcpClient,reader,writer);
+                client = _clientService.CreateClient(username, tcpClient, reader, writer);
 
                 //If such a username already exists
                 if (!_clientService.AddClient(client))
@@ -80,7 +82,10 @@ public class ClientHandler
                 Console.WriteLine($"{username} connected");
 
                 //Sends a message to the user's window via TCP
-                await _clientService.SendAsync(client,$"Welcome {username}!");
+                await _clientService.SendAsync(client, $"Welcome {username}!");
+
+                // Delivering messages saved while the user was offline
+                await _messageService.SendPendingMessagesAsync(client);
 
                 //Infinite Loop
                 while (true)
@@ -92,6 +97,16 @@ public class ClientHandler
                     if (message == null || message == "/exit")
                         break;
 
+                    // Handling an automatic receipt confirmation
+                    if (message.StartsWith("/ack ", StringComparison.Ordinal))
+                    {
+                        string messageId = message[5..].Trim();
+
+                        await _messageService.ConfirmDeliveryAsync(client, messageId);
+
+                        continue;
+                    }
+
                     //Send a list of users and continue in a loop.
                     if (message == "/users")
                     {
@@ -99,7 +114,7 @@ public class ClientHandler
                         List<string> users = _clientService.GetOnlineUsers();
 
                         //Sending the list to the user
-                        await _clientService.SendAsync(client,"Online: " + string.Join(", ", users));
+                        await _clientService.SendAsync(client, "Online: " + string.Join(", ", users));
 
                         continue;
                     }
@@ -112,11 +127,11 @@ public class ClientHandler
                     //Checking the message format
                     if (separatorIndex <= 0)
                     {
-                        await _clientService.SendAsync(client,"Use format: Recipient:Message");
+                        await _clientService.SendAsync(client, "Use format: Recipient:Message");
 
                         continue;
                     }
-                    
+
                     //Extracting the recipient's name
                     string receiverName = message[..separatorIndex].Trim();
 
@@ -124,7 +139,7 @@ public class ClientHandler
                     string content = message[(separatorIndex + 1)..];
 
                     //Sending the message via MessageService
-                    await _messageService.SendPrivateMessageAsync(client,receiverName,content);
+                    await _messageService.SendPrivateMessageAsync(client, receiverName, content);
                 }
             }
         }
@@ -153,23 +168,21 @@ public class ClientHandler
                     try
                     {
                         // If the user is saved successfully, mark them as disconnected
-                        if (client.UserId > 0)
+                        if (client.UserId != ObjectId.Empty)
                         {
                             await _userService.MarkOfflineAsync(client.UserId);
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(
-                            $"Failed to update user status: {ex.Message}");
+                        Console.WriteLine($"Failed to update user status: {ex.Message}");
                     }
                     finally
                     {
                         // Remove the connection even if the database update fails
                         _clientService.RemoveClient(client);
 
-                        Console.WriteLine(
-                            $"{client.Username} disconnected");
+                        Console.WriteLine($"{client.Username} disconnected");
                     }
                 }
             }

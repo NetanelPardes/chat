@@ -1,8 +1,12 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace ChatServer.Models;
 
 public class User
 {
-    public int Id { get; set; }
+    [BsonId]
+    public ObjectId Id { get; set; }
 
     public string Username { get; set; } = "";
 

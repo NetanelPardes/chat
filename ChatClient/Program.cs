@@ -16,7 +16,7 @@ Console.Write("Enter username : ");
 string? username = ui.ReadInput();
 
 //Username check
-while(string.IsNullOrWhiteSpace(username))
+while (string.IsNullOrWhiteSpace(username))
 {
     ui.ShowError("Username cannot be empty");
     Console.Write("Enter username : ");
@@ -43,31 +43,28 @@ try
             {
                 //Waiting for the next message from the server
                 string? incoming = await chatService.ReceiveMessageAsync();
-                
+
                 //Returning null indicates that we have reached the end.
                 if (incoming == null)
                     break;
 
-                if (incoming.Contains(':') && !incoming.StartsWith("Online:"))
-                {
-                    //Finds the position of the first colon in the string
-                    int separatorIndex = incoming.IndexOf(':');
+                // Parsing a private message, including its server-generated ID
+                ChatMessage? message = chatService.ParseReceivedMessage(
+                    incoming, username);
 
-                    //Constructing a ChatMessage object
-                    ChatMessage message = new ChatMessage
-                    {
-                        Sender = incoming[..separatorIndex].Trim(),
-                        Receiver = username,
-                        Content = incoming[(separatorIndex + 1)..].Trim()
-                    };
+                if (message != null)
+                {
                     //Passes the object to a function that displays an incoming message on the screen.
                     ui.ShowMessage(message);
+
+                    // Automatically confirming receipt after displaying the message
+                    await chatService.ConfirmDeliveryAsync(message.Id);
                 }
                 else
                 {
                     ui.ShowInfo(incoming);
                 }
-                            }
+            }
         }
         catch (IOException)
         {
@@ -84,7 +81,6 @@ try
     {
         //Reads input from the user (the message to be sent)
         string? input = ui.ReadInput();
-        
 
         if (input == null || input == "/exit")
             break;

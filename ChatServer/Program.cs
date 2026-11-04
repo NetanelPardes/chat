@@ -1,7 +1,6 @@
 ﻿using ChatServer.Data;
 using ChatServer.Networking;
 using ChatServer.Services;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 // Loading settings
@@ -12,26 +11,31 @@ IConfiguration configuration = new ConfigurationBuilder()
 
 // Reading the connection string
 string connectionString =
-    configuration.GetConnectionString("MySql")
+    configuration["MongoDB:ConnectionString"]
     ?? throw new InvalidOperationException(
-        "MySQL connection string is missing");
+        "MongoDB connection string is missing");
 
-// Configuring EF Core to work with MySQL
-var options = new DbContextOptionsBuilder<MySqlDbContext>()
-    .UseMySql(
-        connectionString,
-        new MySqlServerVersion(new Version(8, 4, 0)))
-    .Options;
+string databaseName =
+    configuration["MongoDB:DatabaseName"]
+    ?? throw new InvalidOperationException(
+        "MongoDB database name is missing");
+
+// Creating access to MongoDB collections
+MongoDbContext mongoDb = new MongoDbContext(
+    connectionString,
+    databaseName);
 
 // Creating the user service and preparing the database
-UserService userService = new UserService(options);
+UserService userService = new UserService(mongoDb);
 
 await userService.InitializeAsync();
 
 // Creating the chat services
 ClientService clientService = new ClientService();
 
-MessageService messageService = new MessageService(clientService);
+MessageService messageService = new MessageService(
+    clientService,
+    mongoDb);
 
 // Reading server settings
 string ip = configuration["Server:IpAddress"] ?? "127.0.0.1";

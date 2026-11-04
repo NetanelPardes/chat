@@ -16,5 +16,5 @@ public class ChatMessage
 
     public DateTime SentAt { get; set; } = DateTime.UtcNow;
 
-    public string Status { get; set; } = "SENT";
+    public string Status { get; set; } = "STORED";
 }
