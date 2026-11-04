@@ -25,8 +25,10 @@ while(string.IsNullOrWhiteSpace(username))
 
 username = username.Trim();
 
+//Message reception loop
 try
 {
+    //Connecting to server
     await chatService.ConnectAsync("127.0.0.1", 5000, username);
 
     ui.ShowInfo($"Connected as {username}");
@@ -39,22 +41,26 @@ try
         {
             while (true)
             {
+                //Waiting for the next message from the server
                 string? incoming = await chatService.ReceiveMessageAsync();
-
+                
+                //Returning null indicates that we have reached the end.
                 if (incoming == null)
                     break;
 
                 if (incoming.Contains(':') && !incoming.StartsWith("Online:"))
                 {
+                    //Finds the position of the first colon in the string
                     int separatorIndex = incoming.IndexOf(':');
 
+                    //Constructing a ChatMessage object
                     ChatMessage message = new ChatMessage
                     {
                         Sender = incoming[..separatorIndex].Trim(),
                         Receiver = username,
                         Content = incoming[(separatorIndex + 1)..].Trim()
                     };
-
+                    //Passes the object to a function that displays an incoming message on the screen.
                     ui.ShowMessage(message);
                 }
                 else
@@ -73,23 +79,28 @@ try
         }
     });
 
-    // Read and send user input
+    // The Typing and Sending Loop
     while (true)
     {
+        //Reads input from the user (the message to be sent)
         string? input = ui.ReadInput();
+        
 
         if (input == null || input == "/exit")
             break;
 
+        //Skip empty input
         if (string.IsNullOrWhiteSpace(input))
             continue;
 
+        //Handling the /users command
         if (input == "/users")
         {
             await chatService.RequestOnlineUsersAsync();
             continue;
         }
 
+        //Checking the format of the message to be sent
         int separatorIndex = input.IndexOf(':');
 
         if (separatorIndex <= 0)
@@ -98,6 +109,7 @@ try
             continue;
         }
 
+        //Creating the outgoing message
         ChatMessage message = new ChatMessage
         {
             Sender = username,
@@ -105,6 +117,7 @@ try
             Content = input[(separatorIndex + 1)..]
         };
 
+        //Sending and Displaying on Screen
         await chatService.SendMessageAsync(message);
 
         ui.ShowSentMessage(message);
