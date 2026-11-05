@@ -30,22 +30,10 @@ public class TcpChatClient
         NetworkStream stream = _tcpClient.GetStream();
 
         //This is the creation of a StreamReader object.
-        _reader = new StreamReader(
-            stream,
-            Encoding.UTF8,
-            detectEncodingFromByteOrderMarks: true,
-            bufferSize: 1024,
-            leaveOpen: true);
+        _reader = new StreamReader(stream,Encoding.UTF8,detectEncodingFromByteOrderMarks: true,bufferSize: 1024,leaveOpen: true);
 
         //This object is responsible for sending text to the server.
-        _writer = new StreamWriter(
-            stream,
-            new UTF8Encoding(false),
-            bufferSize: 1024,
-            leaveOpen: true)
-        {
-            AutoFlush = true
-        };
+        _writer = new StreamWriter(stream,new UTF8Encoding(false),bufferSize: 1024,leaveOpen: true){AutoFlush = true};
     }
 
     //Sending a message
@@ -57,11 +45,7 @@ public class TcpChatClient
         try
         {
             // Keep a local reference in case shutdown clears the field
-            StreamWriter writer = _writer
-                ?? throw new ObjectDisposedException(
-                    nameof(TcpChatClient),
-                    "Not connected to server");
-
+            StreamWriter writer = _writer?? throw new ObjectDisposedException(nameof(TcpChatClient),"Not connected to server");
             await writer.WriteLineAsync(message);
         }
         finally
